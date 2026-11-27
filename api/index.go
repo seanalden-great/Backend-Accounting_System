@@ -299,6 +299,7 @@ func setupApp() {
 	app.SetHTMLTemplate(templ)
 
 	// 3. Inisialisasi Controller
+	dashboardController := controllers.DashboardController{DB: config.DB}
 	authController := controllers.AuthController{DB: config.DB}
 	accountController := controllers.AccountController{DB: config.DB}
 	journalController := controllers.JournalController{DB: config.DB}
@@ -335,6 +336,8 @@ func setupApp() {
 			c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Backend Go berjalan di Vercel!"})
 		})
 
+		api.GET("/dashboard", dashboardController.GetDashboard)
+
 		api.GET("/accounts", accountController.GetChartOfAccounts)
 		api.POST("/accounts", accountController.CreateAccount)
 		api.PUT("/accounts/:code", accountController.UpdateAccount)
@@ -364,10 +367,20 @@ func setupApp() {
 		api.PUT("/purchases/:id/receive", purchaseController.ReceivePurchase)
 		api.PUT("/purchases/:id/bill", purchaseController.CreateBill)
 
+		// api.GET("/sales", saleController.GetSales)
+		// api.POST("/sales", saleController.CreateSale)
+		// api.PUT("/sales/:id/deliver", saleController.DeliverSale)
+		// api.PUT("/sales/:id/invoice", saleController.CreateInvoice)
+
 		api.GET("/sales", saleController.GetSales)
 		api.POST("/sales", saleController.CreateSale)
+		api.POST("/sales/:id/convert", saleController.ConvertToSO)
+		api.POST("/sales/:id/approve", saleController.ApproveSale)
+		api.POST("/sales/:id/reject", saleController.RejectSale)
 		api.PUT("/sales/:id/deliver", saleController.DeliverSale)
 		api.PUT("/sales/:id/invoice", saleController.CreateInvoice)
+		api.POST("/sales/:id/return", saleController.ProcessReturn)
+		api.GET("/sales/aging", saleController.GetReceivableAging)
 
 		api.GET("/reports", reportController.GetFinancialReport)
 

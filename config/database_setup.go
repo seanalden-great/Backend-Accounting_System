@@ -76,7 +76,7 @@ func ConnectDatabase() {
 		host = "127.0.0.1"
 		user = "root"          // Sesuaikan user lokal Anda
 		password = ""          // Sesuaikan password lokal Anda
-		dbname = "accounting_db" // Sesuaikan nama DB lokal Anda
+		dbname = "mpm_accounting" // Sesuaikan nama DB lokal Anda
 		port = "3306"
 	}
 
@@ -108,6 +108,7 @@ func ConnectDatabase() {
 		&models.CompanySetting{},
 		&models.FixedAsset{},
 		&models.FAQ{},
+		&models.User{},
 	)
 	if err != nil {
 		log.Println("Error saat AutoMigrate:", err)
