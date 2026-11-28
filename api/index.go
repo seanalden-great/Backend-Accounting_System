@@ -349,7 +349,13 @@ func setupApp() {
 		api.GET("/journals/mutations", journalController.GetBankMutations)
 		api.POST("/journals", journalController.CreateJournal)
 
+		// api.GET("/products", productController.GetProducts)
+		// api.POST("/products", productController.CreateProduct)
+		// api.PUT("/products/:id", productController.UpdateProduct)
+		// api.DELETE("/products/:id", productController.DeleteProduct)
+
 		api.GET("/products", productController.GetProducts)
+		api.GET("/products/:id", productController.GetProductDetail)
 		api.POST("/products", productController.CreateProduct)
 		api.PUT("/products/:id", productController.UpdateProduct)
 		api.DELETE("/products/:id", productController.DeleteProduct)
