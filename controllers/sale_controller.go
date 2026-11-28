@@ -787,3 +787,89 @@ func (sc *SaleController) GetReceivableAging(c *gin.Context) {
 		"totalPiutang": totalPiutang,
 	})
 }
+
+// GET /api/sales/overview
+func (sc *SaleController) GetSalesOverview(c *gin.Context) {
+	var sales []models.Sale
+	sc.DB.Preload("Contact").Preload("Items.Product").Order("date desc, id desc").Find(&sales)
+
+	type TopProduct struct {
+		ProductSKU   string  `json:"product_sku"`
+		ProductName  string  `json:"product_name"`
+		TotalQty     float64 `json:"total_qty"`
+		TotalRevenue float64 `json:"total_revenue"`
+	}
+	topProducts := []TopProduct{}
+	sc.DB.Table("sale_items").
+		Select("sale_items.product_sku, COALESCE(products.name, sale_items.product_sku) AS product_name, SUM(sale_items.quantity) AS total_qty, SUM(sale_items.sub_total) AS total_revenue").
+		Joins("LEFT JOIN products ON products.sku = sale_items.product_sku").
+		Group("sale_items.product_sku, products.name").
+		Order("total_qty DESC").
+		Limit(5).
+		Scan(&topProducts)
+
+	var predictions interface{} = nil
+	if len(topProducts) > 0 {
+		topSKU := topProducts[0].ProductSKU
+		type HistPoint struct {
+			Month string  `json:"month"`
+			Qty   float64 `json:"qty"`
+		}
+		history := make([]HistPoint, 0, 6)
+		now := time.Now()
+
+		for i := 5; i >= 0; i-- {
+			d := now.AddDate(0, -i, 0)
+			var qty float64
+			sc.DB.Table("sale_items").
+				Select("COALESCE(SUM(sale_items.quantity), 0)").
+				Joins("JOIN sales ON sales.id = sale_items.sale_id").
+				Where("sale_items.product_sku = ? AND MONTH(sales.date) = ? AND YEAR(sales.date) = ?", topSKU, int(d.Month()), d.Year()).
+				Scan(&qty)
+			history = append(history, HistPoint{Month: d.Format("Jan 2006"), Qty: qty})
+		}
+
+		n := float64(len(history))
+		var sumX, sumY, sumXY, sumX2 float64
+		for i, h := range history {
+			x := float64(i + 1)
+			y := h.Qty
+			sumX += x
+			sumY += y
+			sumXY += x * y
+			sumX2 += x * x
+		}
+
+		denom := (n * sumX2) - (sumX * sumX)
+		var b float64
+		if denom != 0 {
+			b = ((n * sumXY) - (sumX * sumY)) / denom
+		}
+		a := (sumY - (b * sumX)) / n
+		predVal := a + (b * (n + 1))
+		if predVal < 0 {
+			predVal = 0
+		}
+
+		trend := "Cenderung Stabil ➖"
+		if b > 0 {
+			trend = "Meningkat Tajam 📈"
+		} else if b < 0 {
+			trend = "Menurun 📉"
+		}
+
+		predictions = gin.H{
+			"product":               topProducts[0].ProductName,
+			"history":               history,
+			"next_month_prediction": int(predVal + 0.5),
+			"trend":                 trend,
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status":      "success",
+		"sales":       sales,
+		"topProducts": topProducts,
+		"predictions": predictions,
+	})
+}

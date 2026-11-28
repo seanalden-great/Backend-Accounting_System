@@ -314,6 +314,8 @@ func setupApp() {
 	settingController := controllers.SettingController{DB: config.DB}
 	assetController := controllers.FixedAssetController{DB: config.DB}
 	faqController := controllers.FAQController{DB: config.DB}
+	// 3. Inisialisasi Controller
+	approvalController := controllers.ApprovalController{DB: config.DB}
 
 	// 4. Daftarkan Routes
 	app.GET("/", func(c *gin.Context) {
@@ -321,7 +323,7 @@ func setupApp() {
 			"title": "Welcome to Go ERP Backend",
 		})
 	})
-	
+
 	// === RUTE TERBUKA (TIDAK BUTUH LOGIN) ===
 	authRoutes := app.Group("/api/auth")
 	{
@@ -342,7 +344,7 @@ func setupApp() {
 		api.POST("/accounts", accountController.CreateAccount)
 		api.PUT("/accounts/:code", accountController.UpdateAccount)
 		api.DELETE("/accounts/:code", accountController.DeleteAccount)
-		
+
 		api.GET("/banks", accountController.GetBanks)
 		api.GET("/journals/mutations", journalController.GetBankMutations)
 		api.POST("/journals", journalController.CreateJournal)
@@ -362,10 +364,21 @@ func setupApp() {
 		api.PUT("/contacts/:id", contactController.UpdateContact)
 		api.DELETE("/contacts/:id", contactController.DeleteContact)
 
+		// api.GET("/purchases", purchaseController.GetPurchases)
+		// api.POST("/purchases", purchaseController.CreatePurchase)
+		// api.PUT("/purchases/:id/receive", purchaseController.ReceivePurchase)
+		// api.PUT("/purchases/:id/bill", purchaseController.CreateBill)
+
 		api.GET("/purchases", purchaseController.GetPurchases)
 		api.POST("/purchases", purchaseController.CreatePurchase)
+		api.POST("/purchases/:id/convert", purchaseController.ConvertToPO)
+		api.POST("/purchases/:id/approve", purchaseController.ApprovePurchase)
+		api.POST("/purchases/:id/reject", purchaseController.RejectPurchase)
 		api.PUT("/purchases/:id/receive", purchaseController.ReceivePurchase)
 		api.PUT("/purchases/:id/bill", purchaseController.CreateBill)
+		api.POST("/purchases/:id/return", purchaseController.ProcessReturn)
+		api.GET("/purchases/aging", purchaseController.GetPayableAging)
+		api.GET("/purchases/overview", purchaseController.GetPurchasesOverview)
 
 		// api.GET("/sales", saleController.GetSales)
 		// api.POST("/sales", saleController.CreateSale)
@@ -381,12 +394,19 @@ func setupApp() {
 		api.PUT("/sales/:id/invoice", saleController.CreateInvoice)
 		api.POST("/sales/:id/return", saleController.ProcessReturn)
 		api.GET("/sales/aging", saleController.GetReceivableAging)
+		api.GET("/sales/overview", saleController.GetSalesOverview)
 
 		api.GET("/reports", reportController.GetFinancialReport)
 
+		// api.GET("/expenses", expenseController.GetExpenses)
+		// api.POST("/expenses", expenseController.CreateExpense)
+		// api.DELETE("/expenses/:id", expenseController.DeleteExpense)
+
 		api.GET("/expenses", expenseController.GetExpenses)
 		api.POST("/expenses", expenseController.CreateExpense)
+		api.PUT("/expenses/:id", expenseController.UpdateExpense)
 		api.DELETE("/expenses/:id", expenseController.DeleteExpense)
+		api.POST("/expenses/kbd", expenseController.GenerateKbd)
 
 		api.GET("/inventory/adjustments", invController.GetAdjustments)
 		api.POST("/inventory/adjust", invController.AdjustStock)
@@ -401,6 +421,8 @@ func setupApp() {
 		api.GET("/faqs", faqController.GetFAQs)
 		api.POST("/faqs", faqController.CreateFAQ)
 		api.DELETE("/faqs/:id", faqController.DeleteFAQ)
+
+		api.GET("/approvals", approvalController.GetPendingApprovals)
 	}
 }
 
@@ -411,6 +433,6 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	initOnce.Do(func() {
 		setupApp()
 	})
-	
+
 	app.ServeHTTP(w, r)
 }
